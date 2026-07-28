@@ -1101,20 +1101,24 @@ footer{background:var(--forest);padding:64px 0 40px;border-top:1px solid rgba(19
 
     <form class="contact-form reveal" data-delay="2" onsubmit="return handleForm(event)">
       <h3>Request a free quote</h3>
-      <div class="field"><label for="f-name">Name</label><input id="f-name" type="text" placeholder="Your name" required autocomplete="name"></div>
-      <div class="field"><label for="f-phone">Phone / WhatsApp</label><input id="f-phone" type="tel" placeholder="+91 ..." required autocomplete="tel"></div>
+      <input type="hidden" name="access_key" value="b927bf03-8666-462b-89e6-1ac30dc2d3a8">
+      <input type="hidden" name="subject" value="New Quote Request — Decofy">
+      <input type="hidden" name="from_name" value="Decofy Website">
+      <input type="checkbox" name="botcheck" style="display:none">
+      <div class="field"><label for="f-name">Name</label><input id="f-name" name="name" type="text" placeholder="Your name" required autocomplete="name"></div>
+      <div class="field"><label for="f-phone">Phone / WhatsApp</label><input id="f-phone" name="phone" type="tel" placeholder="+91 ..." required autocomplete="tel"></div>
       <div class="field"><label for="f-int">I'm interested in</label>
-        <select id="f-int">
+        <select id="f-int" name="interest">
           <option>Modular Kitchen</option>
           <option>Wardrobes</option>
           <option>Full Home</option>
         </select>
       </div>
-      <div class="field"><label for="f-msg">Tell us about your space</label><textarea id="f-msg" placeholder="e.g. 10x12 ft L-shaped kitchen in Pune..."></textarea></div>
+      <div class="field"><label for="f-msg">Tell us about your space</label><textarea id="f-msg" name="message" placeholder="e.g. 10x12 ft L-shaped kitchen in Pune..."></textarea></div>
       <button class="btn" type="submit" style="width:100%;justify-content:center" id="formBtn">Send Request
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
-      <p class="form-note">This demo form opens your email app — connect it to your CRM or WhatsApp API when you go live.</p>
+      <p class="form-note">We'll get back to you within 24 hours.</p>
     </form>
   </div>
 </section>
@@ -1357,19 +1361,35 @@ document.querySelectorAll(".faq-item").forEach(item => {
 const mi = document.getElementById("marqueeInner");
 mi.innerHTML += mi.innerHTML;
 
-/* ---------- DEMO FORM ---------- */
+/* ---------- CONTACT FORM ---------- */
 window.handleForm = function(e){
   e.preventDefault();
-  const name = document.getElementById("f-name").value;
-  const phone = document.getElementById("f-phone").value;
-  const interest = document.getElementById("f-int").value;
-  const msg = document.getElementById("f-msg").value;
-  location.href = "mailto:decofyinteriors@gmail.com?subject=" +
-    encodeURIComponent("Quote request — " + interest) +
-    "&body=" + encodeURIComponent(`Name: ${name}\nPhone: ${phone}\nInterested in: ${interest}\n\n${msg}`);
-  const btn = document.getElementById("formBtn");
-  btn.textContent = "Opening your email app…";
-  setTimeout(() => btn.innerHTML = 'Send Request <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>', 2500);
+  const form = e.target;
+  const btn  = document.getElementById("formBtn");
+  const ARROW = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+
+  btn.disabled = true;
+  btn.textContent = "Sending…";
+
+  fetch("https://api.web3forms.com/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+    body: JSON.stringify(Object.fromEntries(new FormData(form)))
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success) throw new Error(data.message);
+    btn.textContent = "✓ Request sent!";
+    form.reset();
+  })
+  .catch(() => {
+    btn.textContent = "Error — please try again";
+  })
+  .finally(() => {
+    btn.disabled = false;
+    setTimeout(() => { btn.innerHTML = "Send Request " + ARROW; }, 3000);
+  });
+
   return false;
 };
 })();
