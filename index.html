@@ -1380,7 +1380,7 @@ window.handleForm = function(e){
   .then(data => {
     if (!data.success) throw new Error(data.message);
     btn.textContent = "✓ Request sent!";
-    form.reset();
+    form.reset();fbq('track', 'Lead');
   })
   .catch(() => {
     btn.textContent = "Error — please try again";
