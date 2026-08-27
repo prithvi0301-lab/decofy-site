@@ -38,7 +38,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Outfit:wght@300;400;500;600&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&amp;family=Outfit:wght@300;400;500;600&amp;family=Quicksand:wght@600;700&amp;display=swap" rel="stylesheet">
 
 <!-- ============ STRUCTURED DATA (JSON-LD) — SEO + GEO ============ -->
 <script type="application/ld+json">
@@ -319,7 +319,12 @@ body::after{
 /* ============ HERO (scroll-scrub video) ============ */
 .hero-track{height:340vh;position:relative}
 .hero-sticky{position:sticky;top:0;height:100vh;height:100dvh;overflow:hidden}
-.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.05)}
+/* The poster doubles as a background so the hero is never an empty rectangle:
+   on mobile the <canvas> that replaces the video is transparent until the first
+   JPEG frame decodes, and on a slow connection that was several seconds of blank
+   screen across a 280vh sticky section. */
+.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.05);
+  background:#0b211c url("hero-poster.jpg") center center/cover no-repeat}
 .hero-shade{position:absolute;inset:0;background:
   linear-gradient(90deg,rgba(10,22,18,.55) 0%,rgba(10,22,18,.28) 55%,rgba(10,22,18,.1) 100%),
   linear-gradient(180deg,rgba(11,33,28,.55) 0%,rgba(11,33,28,.15) 35%,rgba(11,33,28,.18) 60%,rgba(14,46,39,.9) 100%)}
@@ -843,8 +848,11 @@ footer{background:var(--forest);padding:64px 0 40px;border-top:1px solid rgba(19
   .reveal{opacity:1;transform:none}
 }
 </style>
-<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '1318824476990760');fbq('track', 'PageView');</script><noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1318824476990760&ev=PageView&noscript=1" /></noscript></head>
+<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '1318824476990760');fbq('track', 'PageView');</script></head>
 <body>
+<!-- Meta Pixel <noscript> fallback. Belongs in <body>: an <img> inside a
+     <noscript> in <head> is invalid and forces the parser to close <head> early. -->
+<noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=1318824476990760&amp;ev=PageView&amp;noscript=1"></noscript>
 <!-- ============ NAV ============ -->
 <nav class="nav" id="nav">
   <div class="container nav-inner">
@@ -866,7 +874,9 @@ footer{background:var(--forest);padding:64px 0 40px;border-top:1px solid rgba(19
 <!-- ============ HERO — scroll-driven video ============ -->
 <div class="hero-track" id="heroTrack">
   <section class="hero-sticky hero">
-    <video class="hero-video" id="heroVideo" src="hero-scrub.mp4" poster="hero-poster.jpg" muted playsinline preload="auto"></video>
+    <!-- src/preload are applied by JS on the desktop path only, so phones never
+         download the 7.4 MB desktop video they will never play. -->
+    <video class="hero-video" id="heroVideo" data-src="hero-scrub.mp4" poster="hero-poster.jpg" muted playsinline preload="none"></video>
     <div class="hero-shade"></div>
 
     <div class="hero-content" id="heroContent">
@@ -1243,10 +1253,14 @@ if (!isMobile){
     if (!reduceMotion) video.play().then(() => video.pause()).catch(()=>{});
   };
   addEventListener("click", primeVideo, {once:true});
+  video.src = video.dataset.src;          // desktop only — see markup comment
+  video.preload = "auto";
   video.load();
 } else {
   /* -------- mobile: scrub a JPEG frame sequence on canvas -------- */
+  /* Nothing to abort: the desktop video's src is never applied on this path. */
   video.removeAttribute("src");
+  video.load();                           // cancels any in-flight media fetch
   video.style.display = "none";
   const canvas = document.createElement("canvas");
   canvas.className = "hero-video";
@@ -1256,12 +1270,28 @@ if (!isMobile){
   ctx.imageSmoothingQuality = "high";
   const N = 91;
   const frames = [];
-  for (let i = 1; i <= N; i++){
-    const im = new Image();
-    im.src = "hero-f" + String(i).padStart(3, "0") + ".jpg";
-    if (i === 1) im.onload = () => draw(0, true);
-    frames.push(im);
+  const frameURL = i => "hero-f" + String(i + 1).padStart(3, "0") + ".jpg";
+  for (let i = 0; i < N; i++) frames.push(new Image());
+
+  /* Frame 1 alone first. Firing all 91 requests at once put the first frame at
+     the back of a 6.7 MB queue, so the hero stayed blank for seconds on a slow
+     connection. Paint frame 1, then fill in the rest a few at a time. */
+  const BATCH = 6;
+  function loadFrom(i){
+    if (i >= N) return;
+    let pending = 0;
+    for (let k = i; k < Math.min(i + BATCH, N); k++){
+      pending++;
+      const im = frames[k];
+      const next = () => { if (--pending === 0) loadFrom(i + BATCH); };
+      im.onload = () => { draw(cur * (N - 1), true); next(); };
+      im.onerror = next;                       // a missing frame must not stall the chain
+      im.src = frameURL(k);
+    }
   }
+  frames[0].onload = () => { draw(0, true); loadFrom(1); };
+  frames[0].onerror = () => loadFrom(1);
+  frames[0].src = frameURL(0);
   let cur = 0, last = -1;
   function draw(idx, force){
     let i = Math.max(0, Math.min(N - 1, Math.round(idx)));
@@ -1305,6 +1335,21 @@ const io = new IntersectionObserver(entries => {
   });
 }, {threshold:.15, rootMargin:"0px 0px -40px 0px"});
 document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+
+/* Safety net. .reveal starts at opacity:0, so anything the observer misses stays
+   permanently invisible — a fast wheel flick or a scrollbar drag can skip an
+   element between animation frames and leave a blank gap on the page. This sweep
+   reveals anything that is, or has already been scrolled past, on screen. */
+function revealSweep(){
+  document.querySelectorAll(".reveal:not(.in)").forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (r.top < innerHeight && r.bottom > 0) { el.classList.add("in"); io.unobserve(el); }
+    else if (r.bottom <= 0) { el.classList.add("in"); io.unobserve(el); }  // scrolled past
+  });
+}
+addEventListener("scroll", revealSweep, {passive:true});
+addEventListener("resize", revealSweep);
+revealSweep();
 
 /* ---------- ANIMATED COUNTERS ---------- */
 const counterIO = new IntersectionObserver(entries => {
@@ -1380,7 +1425,11 @@ window.handleForm = function(e){
   .then(data => {
     if (!data.success) throw new Error(data.message);
     btn.textContent = "✓ Request sent!";
-    form.reset();fbq('track', 'Lead');
+    form.reset();
+    /* Guarded: if a content blocker strips the pixel, an unguarded fbq() throws
+       here, falls into .catch() below, and tells the visitor their enquiry
+       failed when it actually went through. */
+    try { if (typeof fbq === "function") fbq('track', 'Lead'); } catch (_) {}
   })
   .catch(() => {
     btn.textContent = "Error — please try again";
