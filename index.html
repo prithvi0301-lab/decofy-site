@@ -1132,7 +1132,6 @@ footer{background:var(--forest);padding:64px 0 40px;border-top:1px solid rgba(19
         </select>
       </div>
       <div class="field"><label for="f-date">Expected Start Date</label><input id="f-date" name="expected_start_date" type="date" required></div>
-      <div class="field"><label for="f-budget">Approximate Budget <span style="opacity:.65">(optional)</span></label><select id="f-budget" name="approximate_budget"><option value="">Select if known</option><option>Below ₹2 lakh</option><option>₹2–3 lakh</option><option>₹3–5 lakh</option><option>₹5–8 lakh</option><option>₹8 lakh+</option><option>Not sure yet</option></select></div>
       <div class="field"><label for="f-msg">Tell us about your space <span style="opacity:.65">(optional)</span></label><textarea id="f-msg" name="message" placeholder="e.g. 10x12 ft L-shaped kitchen"></textarea></div>
       <button class="btn" type="submit" style="width:100%;justify-content:center" id="formBtn">Send Request
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -1439,7 +1438,7 @@ window.handleForm = function(e){
     if (!data.success) throw new Error(data.message);
     btn.textContent = "✓ Request sent!";
     const wa = document.getElementById("whatsappHandoff");
-    const details = ["Hi Decofy, I submitted an enquiry:", "Name: " + lead.name, "Phone: " + lead.phone, "Area: " + lead.area, "Requirement: " + lead.requirement, "Expected start: " + lead.expected_start_date, "Budget: " + (lead.approximate_budget || "Not specified")];
+    const details = ["Hi Decofy, I submitted an enquiry:", "Name: " + lead.name, "Phone: " + lead.phone, "Area: " + lead.area, "Requirement: " + lead.requirement, "Expected start: " + lead.expected_start_date];
     wa.href = "https://wa.me/919900113557?text=" + encodeURIComponent(details.join("\n"));
     wa.style.display = "inline-flex";
     form.reset();
