@@ -31,7 +31,7 @@
       ]
     },
     {
-      "source": "/(index.html|robots.txt|sitemap.xml)",
+      "source": "/(index.html|robots.txt|sitemap.xml|phase2.css|phase2.js)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, must-revalidate" }
       ]
