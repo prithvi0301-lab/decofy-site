@@ -1119,7 +1119,7 @@ footer{background:var(--forest);padding:64px 0 40px;border-top:1px solid rgba(19
 
     <form class="contact-form reveal" data-delay="2" onsubmit="return handleForm(event)">
       <h3>Request a free quote</h3>
-      <input type="hidden" name="access_key" value="b927bf03-8666-462b-89e6-1ac30dc2d3a8">
+      <input type="hidden" name="access_key" value="5a8eb3b5-43e5-438b-b622-0e56c7b69b8f">
       <input type="hidden" name="subject" value="New Quote Request — Decofy">
       <input type="hidden" name="from_name" value="Decofy Website">
       <input type="checkbox" name="botcheck" style="display:none">
@@ -1131,16 +1131,6 @@ footer{background:var(--forest);padding:64px 0 40px;border-top:1px solid rgba(19
           <option>Modular Kitchen</option>
           <option>Wardrobes</option>
           <option>Full Home</option>
-        </select>
-      </div>
-      <div class="field"><label for="f-budget">Approximate Budget <span style="opacity:.65">(optional)</span></label>
-        <select id="f-budget" name="budget">
-          <option value="">Select a range</option>
-          <option>Not sure yet</option>
-          <option>₹2–3 lakh</option>
-          <option>₹3–5 lakh</option>
-          <option>₹5–8 lakh</option>
-          <option>₹8 lakh+</option>
         </select>
       </div>
       <div class="field"><label for="f-date">Expected Start Date</label><input id="f-date" name="expected_start_date" type="date" required></div>
@@ -1430,6 +1420,26 @@ const mi = document.getElementById("marqueeInner");
 mi.innerHTML += mi.innerHTML;
 
 /* ---------- CONTACT FORM ---------- */
+const LEAD_SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbwjo-GCPFGtc6U5YJWP2Zn2AVlvFIMpRQn5YTGZ16YNTunJdljVfP7-2HaT5NyFDTRC_w/exec";
+
+function saveLeadToSheet(lead, source){
+  const sheetLead = new URLSearchParams({
+    name: lead.name || "",
+    phone: lead.phone || "",
+    area: lead.area || "",
+    requirement: lead.requirement || "",
+    expected_start_date: lead.expected_start_date || "",
+    message: lead.message || "",
+    source
+  });
+  fetch(LEAD_SHEET_ENDPOINT, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+    body: sheetLead
+  }).catch(() => {});
+}
+
 window.handleForm = function(e){
   e.preventDefault();
   const form = e.target;
@@ -1448,10 +1458,10 @@ window.handleForm = function(e){
   .then(r => r.json())
   .then(data => {
     if (!data.success) throw new Error(data.message);
+    saveLeadToSheet(lead, "Homepage quote form");
     btn.textContent = "✓ Request sent!";
     const wa = document.getElementById("whatsappHandoff");
     const details = ["Hi Decofy, I submitted an enquiry:", "Name: " + lead.name, "Phone: " + lead.phone, "Area: " + lead.area, "Requirement: " + lead.requirement];
-    if (lead.budget) details.push("Approximate budget: " + lead.budget);
     details.push("Expected start: " + lead.expected_start_date);
     wa.href = "https://wa.me/919900113557?text=" + encodeURIComponent(details.join("\n"));
     wa.style.display = "inline-flex";
