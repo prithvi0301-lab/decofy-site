@@ -1372,7 +1372,6 @@ function queueScrollState(){
 }
 addEventListener("scroll", queueScrollState, {passive:true});
 addEventListener("resize", queueScrollState);
-applyScrollState();
 
 /* ---------- REVEAL ON SCROLL ---------- */
 const io = new IntersectionObserver(entries => {
@@ -1393,8 +1392,14 @@ function revealSweep(){
     else if (r.bottom <= 0) { el.classList.add("in"); io.unobserve(el); }  // scrolled past
   });
 }
-/* scroll/resize is handled by the batched applyScrollState() above, which
-   also makes the initial revealSweep() call. */
+
+/* applyScrollState() (defined further up) calls revealSweep(), which
+   references `io` — so the first call is made here, after io exists and the
+   .reveal elements are registered with it, rather than right after
+   queueScrollState is wired up. This also performs the initial nav-state /
+   hero-progress / reveal-sweep sync; scroll and resize are already bound to
+   queueScrollState() above for every call after this one. */
+applyScrollState();
 
 /* ---------- ANIMATED COUNTERS ---------- */
 const counterIO = new IntersectionObserver(entries => {
