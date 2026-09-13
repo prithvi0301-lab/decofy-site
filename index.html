@@ -1349,21 +1349,33 @@ if (!isMobile){
 }
 
 /* ---------- BATCHED SCROLL/RESIZE ----------
-   nav's "scrolled" toggle, the hero's onScroll (which reads heroTrack's
+   nav's "scrolled" toggle, the hero's progress calc (which reads heroTrack's
    getBoundingClientRect) and the reveal sweep below used to each bind their
    own scroll listener. Firing all three independently meant every scroll
    event interleaved a DOM read with the previous listener's style/class
    write, forcing the browser to recompute layout several times per event —
    the classic cause of scroll stutter. Running them together inside one
-   requestAnimationFrame callback keeps the exact same behaviour (same
-   classes, same styles, same thresholds) but reads once and writes once per
-   animation frame instead of repeatedly per raw scroll event. */
+   requestAnimationFrame callback fixes that, but only if the reads and
+   writes inside that one callback are themselves grouped: every read below
+   (heroProgress's getBoundingClientRect, the reveal sweep's
+   getBoundingClientRect calls) happens first, then every write (nav class,
+   hero opacity/transform, reveal "in" classes) happens after — so nothing
+   here is forced to re-run layout on account of something this same frame
+   already wrote. Same classes, same styles, same thresholds as before. */
 let scrollQueued = false;
 function applyScrollState(){
   scrollQueued = false;
-  nav.classList.toggle("scrolled", scrollY > 40);
-  onScroll();
-  revealSweep();
+
+  /* ---- reads ---- */
+  const scrolled = scrollY > 40;         // not a layout read, grouped here for clarity
+  const p = heroProgress();              // getBoundingClientRect on heroTrack
+  const toReveal = collectRevealSweep(); // getBoundingClientRect on pending .reveal elements
+
+  /* ---- writes ---- */
+  nav.classList.toggle("scrolled", scrolled);
+  updateOverlays(p);
+  targetP = p;
+  applyRevealSweep(toReveal);
 }
 function queueScrollState(){
   if (scrollQueued) return;
@@ -1384,16 +1396,36 @@ document.querySelectorAll(".reveal").forEach(el => io.observe(el));
 /* Safety net. .reveal starts at opacity:0, so anything the observer misses stays
    permanently invisible — a fast wheel flick or a scrollbar drag can skip an
    element between animation frames and leave a blank gap on the page. This sweep
-   reveals anything that is, or has already been scrolled past, on screen. */
-function revealSweep(){
-  document.querySelectorAll(".reveal:not(.in)").forEach(el => {
+   reveals anything that is, or has already been scrolled past, on screen.
+
+   collectRevealSweep() (read-only) and applyRevealSweep() (write-only) split
+   what used to be one function that read a rect and wrote a class for each
+   element in turn. They also share a running "still pending" list instead of
+   re-querying the DOM for every .reveal on every scroll frame: an element
+   the IntersectionObserver already revealed is dropped from the list with a
+   cheap classList check (no layout read), and an element this sweep reveals
+   is dropped once it's written — so, exactly as before, only elements that
+   are still genuinely unrevealed ever get a getBoundingClientRect() call,
+   and the set of those shrinks every frame instead of starting over. */
+let pendingReveal = Array.from(document.querySelectorAll(".reveal:not(.in)"));
+function collectRevealSweep(){
+  if (!pendingReveal.length) return [];
+  const toReveal = [];
+  const stillPending = [];
+  for (const el of pendingReveal){
+    if (el.classList.contains("in")) continue;   // already revealed via IO — no rect needed
     const r = el.getBoundingClientRect();
-    if (r.top < innerHeight && r.bottom > 0) { el.classList.add("in"); io.unobserve(el); }
-    else if (r.bottom <= 0) { el.classList.add("in"); io.unobserve(el); }  // scrolled past
-  });
+    if ((r.top < innerHeight && r.bottom > 0) || r.bottom <= 0) toReveal.push(el);  // in view, or scrolled past
+    else stillPending.push(el);
+  }
+  pendingReveal = stillPending;
+  return toReveal;
+}
+function applyRevealSweep(toReveal){
+  toReveal.forEach(el => { el.classList.add("in"); io.unobserve(el); });
 }
 
-/* applyScrollState() (defined further up) calls revealSweep(), which
+/* applyScrollState() (defined further up) calls applyRevealSweep(), which
    references `io` — so the first call is made here, after io exists and the
    .reveal elements are registered with it, rather than right after
    queueScrollState is wired up. This also performs the initial nav-state /
