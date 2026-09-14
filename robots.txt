@@ -38,4 +38,4 @@ Allow: /
 User-agent: Bytespider
 Allow: /
 
-Sitemap: https://decofy.in/sitemap.xml
+Sitemap: https://www.decofy.in/sitemap.xml
