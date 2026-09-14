@@ -64,7 +64,7 @@ export default async function handler(request, response) {
       body: JSON.stringify({
         ...lead,
         access_key: accessKey,
-        subject: "New Consultation Request — Decofy",
+        subject: lead.source === "Homepage quote form" ? "New Quote Request — Decofy" : "New Consultation Request — Decofy",
         from_name: "Decofy Website",
       }),
     });
