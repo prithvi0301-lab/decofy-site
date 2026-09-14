@@ -20,7 +20,7 @@
 <meta name="author" content="Decofy">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 <meta name="theme-color" content="#0e2e27">
-<link rel="canonical" href="https://decofy.in/">
+<link rel="canonical" href="https://www.decofy.in/">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -32,8 +32,8 @@
 <meta property="og:site_name" content="Decofy">
 <meta property="og:title" content="Decofy — Smart uPVC Interiors | Waterproof Modular Kitchens & Wardrobes">
 <meta property="og:description" content="Waterproof, termite-proof uPVC modular kitchens and wardrobes, with a 15-day average installation and 20-year panel warranty.">
-<meta property="og:url" content="https://decofy.in/">
-<meta property="og:image" content="https://decofy.in/hero-poster.jpg">
+<meta property="og:url" content="https://www.decofy.in/">
+<meta property="og:image" content="https://www.decofy.in/hero-poster.jpg">
 <meta property="og:image:width" content="1920">
 <meta property="og:image:height" content="1080">
 <meta property="og:image:alt" content="Decofy smart uPVC modular kitchen interior">
@@ -43,7 +43,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Decofy — Smart uPVC Interiors | Modular Kitchens & Wardrobes">
 <meta name="twitter:description" content="Waterproof, termite-proof uPVC modular kitchens and wardrobes with a 20-year warranty. Designed for real Indian homes.">
-<meta name="twitter:image" content="https://decofy.in/hero-poster.jpg">
+<meta name="twitter:image" content="https://www.decofy.in/hero-poster.jpg">
 <meta name="twitter:image:alt" content="Decofy smart uPVC modular kitchen interior">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,12 +57,12 @@
   "@graph": [
     {
       "@type": ["LocalBusiness", "HomeAndConstructionBusiness"],
-      "@id": "https://decofy.in/#business",
+      "@id": "https://www.decofy.in/#business",
       "name": "Decofy",
       "alternateName": "Decofy Interiors",
-      "url": "https://decofy.in/",
-      "logo": "https://decofy.in/decofy-logo-v2.png",
-      "image": "https://decofy.in/hero-poster.jpg",
+      "url": "https://www.decofy.in/",
+      "logo": "https://www.decofy.in/decofy-logo-v2.png",
+      "image": "https://www.decofy.in/hero-poster.jpg",
       "description": "Decofy designs and installs smart uPVC interiors — 100% waterproof modular kitchens, termite-proof wardrobes and low-maintenance wall panels for modern Indian homes, backed by a 20-year warranty.",
       "slogan": "Smart uPVC Interiors",
       "telephone": "+91-99001-13557",
@@ -123,15 +123,15 @@
     },
     {
       "@type": "WebSite",
-      "@id": "https://decofy.in/#website",
-      "url": "https://decofy.in/",
+      "@id": "https://www.decofy.in/#website",
+      "url": "https://www.decofy.in/",
       "name": "Decofy — Smart uPVC Interiors",
       "inLanguage": "en-IN",
-      "publisher": { "@id": "https://decofy.in/#business" }
+      "publisher": { "@id": "https://www.decofy.in/#business" }
     },
     {
       "@type": "FAQPage",
-      "@id": "https://decofy.in/#faq",
+      "@id": "https://www.decofy.in/#faq",
       "mainEntity": [
         {
           "@type": "Question",
@@ -1121,7 +1121,7 @@ footer{background:var(--forest);padding:64px 0 40px;border-top:1px solid rgba(19
 
     <form class="contact-form reveal" data-delay="2" onsubmit="return handleForm(event)">
       <h3>Request a free quote</h3>
-      <input type="hidden" name="access_key" value="5a8eb3b5-43e5-438b-b622-0e56c7b69b8f">
+
       <input type="hidden" name="subject" value="New Quote Request — Decofy">
       <input type="hidden" name="from_name" value="Decofy Website">
       <input type="checkbox" name="botcheck" style="display:none">
@@ -1489,26 +1489,6 @@ const mi = document.getElementById("marqueeInner");
 mi.innerHTML += mi.innerHTML;
 
 /* ---------- CONTACT FORM ---------- */
-const LEAD_SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbwjo-GCPFGtc6U5YJWP2Zn2AVlvFIMpRQn5YTGZ16YNTunJdljVfP7-2HaT5NyFDTRC_w/exec";
-
-function saveLeadToSheet(lead, source){
-  const sheetLead = new URLSearchParams({
-    name: lead.name || "",
-    phone: lead.phone || "",
-    area: lead.area || "",
-    requirement: lead.requirement || "",
-    expected_start_date: lead.expected_start_date || "",
-    message: lead.message || "",
-    source
-  });
-  fetch(LEAD_SHEET_ENDPOINT, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-    body: sheetLead
-  }).catch(() => {});
-}
-
 window.handleForm = function(e){
   e.preventDefault();
   const form = e.target;
@@ -1519,7 +1499,9 @@ window.handleForm = function(e){
   btn.textContent = "Sending…";
   const lead = Object.fromEntries(new FormData(form));
 
-  fetch("https://api.web3forms.com/submit", {
+  lead.source = "Homepage quote form";
+  delete lead.access_key;
+  fetch("/api/lead", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Accept": "application/json" },
     body: JSON.stringify(lead)
@@ -1527,7 +1509,6 @@ window.handleForm = function(e){
   .then(r => r.json())
   .then(data => {
     if (!data.success) throw new Error(data.message);
-    saveLeadToSheet(lead, "Homepage quote form");
     btn.textContent = "✓ Request sent!";
     const wa = document.getElementById("whatsappHandoff");
     const details = ["Hi Decofy, I submitted an enquiry:", "Name: " + lead.name, "Phone: " + lead.phone, "Area: " + lead.area, "Requirement: " + lead.requirement];

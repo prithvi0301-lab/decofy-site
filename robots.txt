@@ -1,5 +1,5 @@
 # Decofy — Smart uPVC Interiors
-# https://decofy.in
+# https://www.decofy.in
 
 User-agent: *
 Allow: /
@@ -38,4 +38,4 @@ Allow: /
 User-agent: Bytespider
 Allow: /
 
-Sitemap: https://decofy.in/sitemap.xml
+Sitemap: https://www.decofy.in/sitemap.xml
