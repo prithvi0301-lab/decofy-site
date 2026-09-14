@@ -1,5 +1,9 @@
 const MAX_FIELD_LENGTH = 2000;
 
+export const config = {
+  maxDuration: 60,
+};
+
 function clean(value, maxLength = MAX_FIELD_LENGTH) {
   return String(value || "").trim().slice(0, maxLength);
 }
@@ -61,7 +65,7 @@ export default async function handler(request, response) {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
+  const timeout = setTimeout(() => controller.abort(), 45000);
 
   try {
     const upstream = await fetch(endpoint, {
