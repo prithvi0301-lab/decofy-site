@@ -65,7 +65,9 @@ export default async function handler(request, response) {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 45000);
+  // Leave a small buffer inside Vercel's 60-second function limit while
+  // allowing Apps Script enough time to finish during brief lock contention.
+  const timeout = setTimeout(() => controller.abort(), 55000);
 
   try {
     const upstream = await fetch(endpoint, {
@@ -94,6 +96,13 @@ export default async function handler(request, response) {
     });
   } catch (error) {
     console.error("Lead delivery failed", error instanceof Error ? error.name : "UnknownError");
+    if (error instanceof Error && error.name === "AbortError") {
+      return json(response, 504, {
+        success: false,
+        uncertain: true,
+        message: "Delivery confirmation was delayed. Please continue on WhatsApp and do not resubmit.",
+      });
+    }
     return json(response, 502, { success: false, message: "Unable to send request" });
   } finally {
     clearTimeout(timeout);
