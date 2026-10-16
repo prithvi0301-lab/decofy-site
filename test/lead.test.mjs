@@ -440,6 +440,164 @@ const tests = [
     assert.equal(calls.length, 0);
   }],
 
+  ["rejected upstream logs one sanitized diagnostic without changing the 502", async () => {
+    withDeliveryEnv();
+    const phone = "9986762942";
+    const leadName = "Nakhul Kashyap";
+    const leadMessage = "Please call about the 10x12 kitchen";
+    const utm = "gasbot_compat_secret";
+    const logs = [];
+    const originalError = console.error;
+    console.error = (...args) => logs.push(args);
+    const leadBody = {
+      name: leadName,
+      phone,
+      area: "HSR",
+      requirement: "Wardrobes",
+      message: leadMessage,
+      utm_source: utm,
+      utm_medium: "cpc",
+    };
+    try {
+      installFetch(async () => ({
+        ok: false,
+        status: 500,
+        redirected: true,
+        url: `https://user:pass@script.googleusercontent.com/macros/echo/${TOKEN}?token=${TOKEN}&x=1`,
+        headers: {
+          get(name) {
+            const key = String(name).toLowerCase();
+            if (key === "content-type") return "text/html; charset=utf-8";
+            if (key === "cookie") return "session=supersecret";
+            if (key === "authorization") return "Bearer abcdefghijklmnop";
+            return null;
+          },
+        },
+        async text() {
+          return `nope ${TOKEN}\r\n${leadName}\n${phone} ${leadMessage} ${utm}\u0007 Bearer abcdefghijklmnop token=${TOKEN} https://evil.example/a?secret=abc ${"ab".repeat(16)}`;
+        },
+      }));
+      let response = mockResponse();
+      await handler(mockRequest({ body: leadBody }), response);
+      assert.equal(response.statusCode, 502);
+      assert.deepEqual(response.body, { success: false, message: "Unable to send request" });
+      assert.equal(logs.length, 1);
+      assert.equal(logs[0][0], "Lead delivery failed");
+      const diagnostic = logs[0][1];
+      assert.equal(diagnostic.stage, "status");
+      assert.equal(diagnostic.name, "Error");
+      assert.equal(diagnostic.message, "Lead delivery rejected");
+      assert.equal(diagnostic.upstreamStatus, 500);
+      assert.equal(diagnostic.upstreamOk, false);
+      assert.equal(diagnostic.contentType, "text/html; charset=utf-8");
+      assert.equal(diagnostic.jsonParsed, false);
+      assert.equal(Object.hasOwn(diagnostic, "resultSuccess"), false);
+      assert.equal(diagnostic.redirected, true);
+      assert.equal(diagnostic.finalUrlHost, "script.googleusercontent.com");
+      assert.equal(diagnostic.finalUrlPath, "/macros/echo/[redacted]");
+      assert.equal(diagnostic.finalUrlPath.includes(TOKEN), false);
+      assert.equal(diagnostic.bodyPreview.length <= 200, true);
+      assert.equal(/[\r\n\u0000-\u001F]/.test(diagnostic.bodyPreview), false);
+      assert.doesNotMatch(diagnostic.bodyPreview, /\s{2,}/);
+      const dumped = JSON.stringify(logs[0]);
+      for (const secret of [TOKEN, ENDPOINT, phone, leadName, leadMessage, utm, "cpc", "supersecret", "abcdefghijklmnop", "secret=abc", "ab".repeat(16), "user:pass", "token="]) {
+        assert.equal(dumped.includes(secret), false, secret);
+      }
+      assert.equal(dumped.includes("?"), false);
+
+      logs.length = 0;
+      installFetch(async () => ({
+        ok: true,
+        status: 200,
+        redirected: false,
+        url: "https://script.google.com/macros/s/test/exec?unused=1",
+        headers: { get: () => "text/plain" },
+        async text() {
+          return "not-json\u0000tail";
+        },
+      }));
+      response = mockResponse();
+      await handler(mockRequest({ body: leadBody }), response);
+      assert.equal(response.statusCode, 502);
+      assert.equal(logs.length, 1);
+      assert.equal(logs[0][1].stage, "parse");
+      assert.equal(logs[0][1].jsonParsed, false);
+      assert.equal(logs[0][1].upstreamOk, true);
+      assert.equal(logs[0][1].bodyPreview, "not-json tail");
+      assert.equal(logs[0][1].finalUrlHost, "script.google.com");
+      assert.equal(logs[0][1].finalUrlPath, "/macros/s/test/exec");
+      assert.equal(JSON.stringify(logs[0]).includes("unused=1"), false);
+
+      logs.length = 0;
+      installFetch(async () => ({
+        ok: true,
+        status: 200,
+        redirected: false,
+        url: "https://script.google.com/macros/s/test/exec",
+        headers: { get: () => "application/json" },
+        async text() {
+          return JSON.stringify({ success: false, detail: phone });
+        },
+      }));
+      response = mockResponse();
+      await handler(mockRequest({ body: leadBody }), response);
+      assert.equal(response.statusCode, 502);
+      assert.equal(logs.length, 1);
+      assert.equal(logs[0][1].stage, "result");
+      assert.equal(logs[0][1].jsonParsed, true);
+      assert.equal(logs[0][1].resultSuccess, false);
+      assert.equal(logs[0][1].upstreamStatus, 200);
+      assert.equal(JSON.stringify(logs[0]).includes(phone), false);
+
+      logs.length = 0;
+      installFetch(async () => {
+        const error = new Error(`connect ${ENDPOINT}?token=${TOKEN} ${phone}`);
+        error.name = "TypeError";
+        throw error;
+      });
+      response = mockResponse();
+      await handler(mockRequest({ body: leadBody }), response);
+      assert.equal(response.statusCode, 502);
+      assert.equal(logs.length, 1);
+      assert.equal(logs[0][1].stage, "fetch");
+      assert.equal(logs[0][1].name, "TypeError");
+      assert.equal(logs[0][1].upstreamStatus, undefined);
+      const fetchDump = JSON.stringify(logs[0]);
+      assert.equal(fetchDump.includes(TOKEN), false);
+      assert.equal(fetchDump.includes(ENDPOINT), false);
+      assert.equal(fetchDump.includes(phone), false);
+      assert.equal(fetchDump.includes("?"), false);
+
+      logs.length = 0;
+      installFetch(async () => {
+        const error = new Error("The operation was aborted.");
+        error.name = "AbortError";
+        throw error;
+      });
+      response = mockResponse();
+      await handler(mockRequest({ body: leadBody }), response);
+      assert.equal(response.statusCode, 504);
+      assert.deepEqual(response.body, {
+        success: false,
+        uncertain: true,
+        message: "Delivery confirmation was delayed. Please continue on WhatsApp and do not resubmit.",
+      });
+      assert.equal(logs.length, 1);
+      assert.equal(logs[0][1].stage, "fetch");
+      assert.equal(logs[0][1].name, "AbortError");
+      assert.equal(logs[0][1].message, "The operation was aborted.");
+
+      logs.length = 0;
+      installFetch(async () => jsonOk({ success: true, message: "Request received" }));
+      response = mockResponse();
+      await handler(mockRequest({ body: leadBody }), response);
+      assert.equal(response.statusCode, 200);
+      assert.equal(logs.length, 0);
+    } finally {
+      console.error = originalError;
+    }
+  }],
+
   ["delivery payload helper does not let attribution overwrite lead fields", () => {
     const lead = normaliseLead({
       name: "A",

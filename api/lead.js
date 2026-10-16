@@ -151,6 +151,127 @@ function buildDeliveryPayload(lead, token) {
   return payload;
 }
 
+function collapseLogText(value) {
+  return String(value ?? "")
+    .replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function secretNeedles(lead, token, endpoint) {
+  const values = [token, endpoint];
+  if (token) values.push(encodeURIComponent(String(token)));
+  if (lead) {
+    values.push(lead.name, lead.phone, lead.message);
+    if (lead.attribution) values.push(...Object.values(lead.attribution));
+  }
+  return [...new Set(values.map((value) => collapseLogText(value)).filter(Boolean))];
+}
+
+function redactSecrets(text, needles) {
+  let out = text;
+  out = out.replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{8,}/gi, "Bearer [redacted]");
+  out = out.replace(
+    /[?&#](?:access_token|id_token|refresh_token|token|key|secret|password|api_key|auth)=[^&\s#]*/gi,
+    "[redacted]",
+  );
+  out = out.replace(
+    /\b(?:access_token|refresh_token|api[_-]?key|client_secret|secret|password|token)\b\s*[:=]\s*["']?[A-Za-z0-9._~+/=-]{6,}/gi,
+    "[redacted]",
+  );
+  out = out.replace(/\b[A-Fa-f0-9]{32,}\b/g, "[redacted]");
+  const long = needles.filter((value) => value.length >= 4).sort((a, b) => b.length - a.length);
+  const short = needles.filter((value) => value.length < 4);
+  if (long.length) {
+    out = out.replace(new RegExp(long.map(escapeRegExp).join("|"), "gi"), "[redacted]");
+  }
+  for (const value of short) {
+    out = out.replace(
+      new RegExp(`(^|[^A-Za-z0-9])${escapeRegExp(value)}(?=$|[^A-Za-z0-9])`, "gi"),
+      "$1[redacted]",
+    );
+  }
+  out = out.replace(/https?:\/\/[^\s]+/gi, (url) => {
+    try {
+      const parsed = new URL(url.replace(/[),.;]+$/g, ""));
+      return `${parsed.origin}${parsed.pathname}`;
+    } catch {
+      return "[redacted]";
+    }
+  });
+  out = out.replace(/\?[^\s#]*/g, "");
+  return out;
+}
+
+function sanitizeLogText(value, needles, max) {
+  const text = redactSecrets(collapseLogText(value), needles);
+  return text.length > max ? text.slice(0, max) : text;
+}
+
+function headerValue(headers, name) {
+  if (!headers || typeof headers !== "object") return "";
+  try {
+    if (typeof headers.get === "function") {
+      const value = headers.get(name);
+      return value == null ? "" : String(value);
+    }
+  } catch {
+    return "";
+  }
+  const match = Object.keys(headers).find((key) => key.toLowerCase() === name.toLowerCase());
+  return match ? String(headers[match] ?? "") : "";
+}
+
+function finalUrlParts(url, needles) {
+  if (typeof url !== "string" || !url) return { finalUrlHost: "", finalUrlPath: "" };
+  try {
+    const parsed = new URL(url);
+    return {
+      finalUrlHost: sanitizeLogText(parsed.hostname, needles, 253),
+      finalUrlPath: sanitizeLogText(parsed.pathname, needles, 300),
+    };
+  } catch {
+    return { finalUrlHost: "", finalUrlPath: "" };
+  }
+}
+
+function rejectionStage(upstream, parsed, result) {
+  if (upstream.ok !== true) return "status";
+  if (!parsed || !result || typeof result !== "object") return "parse";
+  return "result";
+}
+
+function rejectionDiagnostic(upstream, text, parsed, result, needles) {
+  const diagnostic = {
+    upstreamStatus: Number.isFinite(upstream && upstream.status) ? upstream.status : null,
+    upstreamOk: upstream && upstream.ok === true,
+    contentType: sanitizeLogText(headerValue(upstream && upstream.headers, "content-type"), needles, 120),
+    textLength: typeof text === "string" ? text.length : 0,
+    bodyPreview: sanitizeLogText(typeof text === "string" ? text.slice(0, 5000) : "", needles, 200),
+    jsonParsed: parsed === true,
+    redirected: upstream && upstream.redirected === true,
+    ...finalUrlParts(upstream && upstream.url, needles),
+  };
+  if (parsed) {
+    diagnostic.resultSuccess = Boolean(result && typeof result === "object" && result.success === true);
+  }
+  return diagnostic;
+}
+
+function logLeadFailure(error, stage, needles, diagnostic) {
+  const entry = {
+    stage,
+    name: sanitizeLogText(error instanceof Error ? error.name : "UnknownError", needles, 80) || "UnknownError",
+    message: sanitizeLogText(error instanceof Error ? error.message : "", needles, 200),
+  };
+  if (diagnostic) Object.assign(entry, diagnostic);
+  console.error("Lead delivery failed", entry);
+}
+
 function json(response, status, body) {
   response.status(status).setHeader("Content-Type", "application/json");
   response.setHeader("Cache-Control", "no-store");
@@ -204,6 +325,8 @@ export default async function handler(request, response) {
   // allowing Apps Script enough time to finish during brief lock contention.
   const timeout = setTimeout(() => controller.abort(), 55000);
   const delivery = buildDeliveryPayload(lead, token);
+  const logNeedles = secretNeedles(lead, token, endpoint);
+  let failureStage = "fetch";
 
   try {
     const upstream = await fetch(endpoint, {
@@ -215,15 +338,21 @@ export default async function handler(request, response) {
     });
 
     const text = await upstream.text();
-    let result;
+    failureStage = "parse";
+    let parsed = false;
+    let result = null;
     try {
       result = JSON.parse(text);
+      parsed = true;
     } catch {
       result = null;
     }
 
     if (!upstream.ok || !result || result.success !== true) {
-      throw new Error("Lead delivery rejected");
+      const error = new Error("Lead delivery rejected");
+      error.leadStage = rejectionStage(upstream, parsed, result);
+      error.leadDiagnostic = rejectionDiagnostic(upstream, text, parsed, result, logNeedles);
+      throw error;
     }
 
     return json(response, 200, {
@@ -231,7 +360,12 @@ export default async function handler(request, response) {
       message: clean(result.message, 200) || "Request received",
     });
   } catch (error) {
-    console.error("Lead delivery failed", error instanceof Error ? error.name : "UnknownError");
+    logLeadFailure(
+      error,
+      error && error.leadStage ? error.leadStage : failureStage,
+      logNeedles,
+      error && error.leadDiagnostic,
+    );
     if (error instanceof Error && error.name === "AbortError") {
       return json(response, 504, {
         success: false,
