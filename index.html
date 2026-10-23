@@ -1190,7 +1190,7 @@ footer{background:var(--forest);padding:64px 0 40px;border-top:1px solid rgba(19
     </div>
   </div>
 </footer>
-<script src="/attribution.js"></script>
+<script src="/attribution.js"></script><script src="/enquiry.js"></script>
 <script>
 (function(){
 "use strict";
@@ -1537,6 +1537,7 @@ window.handleForm = function(e){
       if (typeof window.decofySyncAttributionFields === "function") window.decofySyncAttributionFields();
     } catch (_) {}
     try { if (typeof fbq === "function") fbq("track", "Lead"); } catch (_) {}
+    try { if (typeof gtag === "function") gtag("event", "generate_lead"); } catch (_) {}
   })
   .catch(() => {
     if (!confirmed) btn.textContent = "Error — please try again";
