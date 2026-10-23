@@ -50,18 +50,7 @@ window.handleLeadForm = async function(event) {
 
     confirmed = true;
     try {
-      const lines = [
-        "Hi Decofy, I submitted an enquiry:",
-        "Name: " + (lead.name || ""),
-        "Phone: " + (lead.phone || ""),
-        "Area: " + (lead.area || ""),
-        "Requirement: " + (lead.requirement || ""),
-        "Expected start: " + (lead.expected_start_timeline || ""),
-      ];
-      if (wa) {
-        wa.href = "https://wa.me/919900113557?text=" + encodeURIComponent(lines.join("\n"));
-        wa.style.display = "inline-flex";
-      }
+      if (wa) wa.style.display = "inline-flex";
       button.textContent = "✓ Request sent";
       const note = form.querySelector(".form-note");
       if (note) {

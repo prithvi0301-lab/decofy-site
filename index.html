@@ -1190,7 +1190,7 @@ footer{background:var(--forest);padding:64px 0 40px;border-top:1px solid rgba(19
     </div>
   </div>
 </footer>
-<script src="/attribution.js"></script>
+<script src="/attribution.js"></script><script src="/enquiry.js"></script>
 <script>
 (function(){
 "use strict";
@@ -1519,24 +1519,14 @@ window.handleForm = function(e){
     try {
       btn.textContent = "✓ Request sent";
       const wa = document.getElementById("whatsappHandoff");
-      const details = [
-        "Hi Decofy, I submitted an enquiry:",
-        "Name: " + (lead.name || ""),
-        "Phone: " + (lead.phone || ""),
-        "Area: " + (lead.area || ""),
-        "Requirement: " + (lead.requirement || ""),
-        "Expected start: " + (lead.expected_start_timeline || "")
-      ];
-      if (wa) {
-        wa.href = "https://wa.me/919900113557?text=" + encodeURIComponent(details.join("\n"));
-        wa.style.display = "inline-flex";
-      }
+      if (wa) wa.style.display = "inline-flex";
       const note = document.getElementById("formNote");
       if (note) note.hidden = false;
       form.reset();
       if (typeof window.decofySyncAttributionFields === "function") window.decofySyncAttributionFields();
     } catch (_) {}
     try { if (typeof fbq === "function") fbq("track", "Lead"); } catch (_) {}
+    try { if (typeof gtag === "function") gtag("event", "generate_lead"); } catch (_) {}
   })
   .catch(() => {
     if (!confirmed) btn.textContent = "Error — please try again";
