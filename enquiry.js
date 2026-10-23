@@ -62,11 +62,17 @@
     return "page";
   }
 
+  function isFormSuccess(anchor) {
+    return anchor.id === "whatsappHandoff" || anchor.classList.contains("success-link");
+  }
+
   function applyWhatsAppText(anchor) {
     var url = toUrl(anchor.getAttribute("href") || "");
     if (!isWhatsApp(url)) return;
     var existing = url.searchParams.get("text") || "";
-    var next = withPageReference(existing);
+    // Success links must not keep a message built from form fields. Enhanced
+    // measurement copies the full href into link_url.
+    var next = isFormSuccess(anchor) ? ("Hi Decofy, " + pageSentence()) : withPageReference(existing);
     if (next === existing) return;
     url.searchParams.set("text", next);
     anchor.setAttribute("href", url.toString());

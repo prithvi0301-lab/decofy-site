@@ -1519,18 +1519,7 @@ window.handleForm = function(e){
     try {
       btn.textContent = "✓ Request sent";
       const wa = document.getElementById("whatsappHandoff");
-      const details = [
-        "Hi Decofy, I submitted an enquiry:",
-        "Name: " + (lead.name || ""),
-        "Phone: " + (lead.phone || ""),
-        "Area: " + (lead.area || ""),
-        "Requirement: " + (lead.requirement || ""),
-        "Expected start: " + (lead.expected_start_timeline || "")
-      ];
-      if (wa) {
-        wa.href = "https://wa.me/919900113557?text=" + encodeURIComponent(details.join("\n"));
-        wa.style.display = "inline-flex";
-      }
+      if (wa) wa.style.display = "inline-flex";
       const note = document.getElementById("formNote");
       if (note) note.hidden = false;
       form.reset();
