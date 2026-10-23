@@ -81,7 +81,8 @@
     try {
       if (typeof window.gtag !== "function") return;
       window.gtag("event", name, {
-        page_path: pagePath(),
+        // gtag.js drops an event param named page_path, so the path is sent as enquiry_page.
+        enquiry_page: pagePath(),
         link_location: linkLocation(anchor),
         link_type: isTel(href) ? "tel" : "whatsapp"
       });
