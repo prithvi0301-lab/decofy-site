@@ -1492,6 +1492,36 @@ document.querySelectorAll(".faq-item").forEach(item => {
 const mi = document.getElementById("marqueeInner");
 mi.innerHTML += mi.innerHTML;
 
+/* ---------- WHATSAPP HANDOFF ---------- */
+/* Form success must not put name, phone, area, requirement, or timeline in the
+   wa.me URL. Enhanced measurement copies the full href into link_url. */
+function decofyHandoffText(){
+  var path = window.location.pathname || "/";
+  path = path.replace(/\/index\.html$/i, "/").replace(/\.html$/i, "");
+  if (path.length > 1 && path.charAt(path.length - 1) === "/") path = path.slice(0, -1);
+  if (!path) path = "/";
+  var labels = {
+    "/": "home",
+    "/consultation": "consultation",
+    "/upvc-interiors-bengaluru": "uPVC interiors",
+    "/upvc-wall-panels-bengaluru": "wall panels"
+  };
+  var label = labels[path];
+  if (!label) return "Hi Decofy, I'm enquiring from this page.";
+  return "Hi Decofy, I'm enquiring from the " + label + " page.";
+}
+function decofyHandoffHref(){
+  return "https://wa.me/919900113557?text=" + encodeURIComponent(decofyHandoffText());
+}
+document.addEventListener("click", function(event){
+  var target = event.target;
+  if (!target || !target.closest) return;
+  var anchor = target.closest("a[href]");
+  if (!anchor) return;
+  if (anchor.id !== "whatsappHandoff" && !anchor.classList.contains("success-link")) return;
+  anchor.setAttribute("href", decofyHandoffHref());
+}, true);
+
 /* ---------- CONTACT FORM ---------- */
 window.handleForm = function(e){
   e.preventDefault();
@@ -1519,16 +1549,8 @@ window.handleForm = function(e){
     try {
       btn.textContent = "✓ Request sent";
       const wa = document.getElementById("whatsappHandoff");
-      const details = [
-        "Hi Decofy, I submitted an enquiry:",
-        "Name: " + (lead.name || ""),
-        "Phone: " + (lead.phone || ""),
-        "Area: " + (lead.area || ""),
-        "Requirement: " + (lead.requirement || ""),
-        "Expected start: " + (lead.expected_start_timeline || "")
-      ];
       if (wa) {
-        wa.href = "https://wa.me/919900113557?text=" + encodeURIComponent(details.join("\n"));
+        wa.href = decofyHandoffHref();
         wa.style.display = "inline-flex";
       }
       const note = document.getElementById("formNote");
