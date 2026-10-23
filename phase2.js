@@ -1,3 +1,36 @@
+/* Form-success WhatsApp links keep only a page tag. Enhanced measurement
+   copies the full href into link_url, so name, phone, area, requirement, and
+   timeline must never be written into it. The capture listener runs before
+   the tag's bubble-phase click listener reads href. */
+function decofyHandoffText() {
+  var path = window.location.pathname || "/";
+  path = path.replace(/\/index\.html$/i, "/").replace(/\.html$/i, "");
+  if (path.length > 1 && path.charAt(path.length - 1) === "/") path = path.slice(0, -1);
+  if (!path) path = "/";
+  var labels = {
+    "/": "home",
+    "/consultation": "consultation",
+    "/upvc-interiors-bengaluru": "uPVC interiors",
+    "/upvc-wall-panels-bengaluru": "wall panels"
+  };
+  var label = labels[path];
+  if (!label) return "Hi Decofy, I'm enquiring from this page.";
+  return "Hi Decofy, I'm enquiring from the " + label + " page.";
+}
+
+function decofyHandoffHref() {
+  return "https://wa.me/919900113557?text=" + encodeURIComponent(decofyHandoffText());
+}
+
+document.addEventListener("click", function (event) {
+  var target = event.target;
+  if (!target || !target.closest) return;
+  var anchor = target.closest("a[href]");
+  if (!anchor) return;
+  if (anchor.id !== "whatsappHandoff" && !anchor.classList.contains("success-link")) return;
+  anchor.setAttribute("href", decofyHandoffHref());
+}, true);
+
 document.addEventListener("DOMContentLoaded", () => {
   const toggle = document.querySelector(".nav-toggle");
   const links = document.querySelector(".nav-links");
@@ -50,16 +83,8 @@ window.handleLeadForm = async function(event) {
 
     confirmed = true;
     try {
-      const lines = [
-        "Hi Decofy, I submitted an enquiry:",
-        "Name: " + (lead.name || ""),
-        "Phone: " + (lead.phone || ""),
-        "Area: " + (lead.area || ""),
-        "Requirement: " + (lead.requirement || ""),
-        "Expected start: " + (lead.expected_start_timeline || ""),
-      ];
       if (wa) {
-        wa.href = "https://wa.me/919900113557?text=" + encodeURIComponent(lines.join("\n"));
+        wa.href = decofyHandoffHref();
         wa.style.display = "inline-flex";
       }
       button.textContent = "✓ Request sent";
