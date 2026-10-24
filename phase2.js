@@ -19,7 +19,8 @@ function decofyHandoffText() {
 }
 
 function decofyHandoffHref() {
-  return "https://wa.me/919591128007?text=" + encodeURIComponent(decofyHandoffText());
+  // TEMP: WhatsApp routed to existing number until 919591128007 is registered
+  return "https://wa.me/919900113557?text=" + encodeURIComponent(decofyHandoffText());
 }
 
 document.addEventListener("click", function (event) {
