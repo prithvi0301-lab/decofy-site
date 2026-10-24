@@ -1,9 +1,7 @@
 /* Form-success WhatsApp links keep only a page tag. Enhanced measurement
    copies the full href into link_url, so name, phone, area, requirement, and
    timeline must never be written into it. The capture listener runs before
-   the tag's bubble-phase click listener reads href.
-   TEMP: handoff is off. Flip WHATSAPP_ENABLED to true to restore it. */
-const WHATSAPP_ENABLED = false;
+   the tag's bubble-phase click listener reads href. */
 function decofyHandoffText() {
   var path = window.location.pathname || "/";
   path = path.replace(/\/index\.html$/i, "/").replace(/\.html$/i, "");
@@ -21,12 +19,10 @@ function decofyHandoffText() {
 }
 
 function decofyHandoffHref() {
-  if (!WHATSAPP_ENABLED) return "/consultation#consultation-form";
   return "https://wa.me/919591128007?text=" + encodeURIComponent(decofyHandoffText());
 }
 
 document.addEventListener("click", function (event) {
-  if (!WHATSAPP_ENABLED) return;
   var target = event.target;
   if (!target || !target.closest) return;
   var anchor = target.closest("a[href]");
@@ -48,13 +44,11 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  if (WHATSAPP_ENABLED) {
-    document.querySelectorAll(".success-link").forEach((link) =>
-      link.addEventListener("click", () => {
-        try { if (typeof gtag === "function") gtag("event", "whatsapp_continue"); } catch (_) {}
-      })
-    );
-  }
+  document.querySelectorAll(".success-link").forEach((link) =>
+    link.addEventListener("click", () => {
+      try { if (typeof gtag === "function") gtag("event", "whatsapp_continue"); } catch (_) {}
+    })
+  );
 });
 
 window.handleLeadForm = async function(event) {
@@ -80,10 +74,8 @@ window.handleLeadForm = async function(event) {
     const data = await response.json();
     if (!(response.ok && data && data.success)) {
       if (data && (data.uncertain || response.status >= 500)) {
-        button.textContent = WHATSAPP_ENABLED
-          ? "Confirmation delayed — use WhatsApp below"
-          : "Confirmation delayed — please try again";
-        if (wa && WHATSAPP_ENABLED) wa.style.display = "inline-flex";
+        button.textContent = "Confirmation delayed — use WhatsApp below";
+        if (wa) wa.style.display = "inline-flex";
         return false;
       }
       throw new Error((data && data.message) || "Request rejected");
@@ -91,7 +83,7 @@ window.handleLeadForm = async function(event) {
 
     confirmed = true;
     try {
-      if (wa && WHATSAPP_ENABLED) {
+      if (wa) {
         wa.href = decofyHandoffHref();
         wa.style.display = "inline-flex";
       }
@@ -99,9 +91,7 @@ window.handleLeadForm = async function(event) {
       const note = form.querySelector(".form-note");
       if (note) {
         note.hidden = false;
-        note.textContent = WHATSAPP_ENABLED
-          ? "Request sent. Continue on WhatsApp only if you want to."
-          : "Thank you. Our team will contact you shortly.";
+        note.textContent = "Request sent. Continue on WhatsApp only if you want to.";
       }
       form.reset();
       if (typeof window.decofySyncAttributionFields === "function") window.decofySyncAttributionFields();
@@ -110,10 +100,8 @@ window.handleLeadForm = async function(event) {
     try { if (typeof gtag === "function") gtag("event", "generate_lead"); } catch (_) {}
   } catch (_) {
     if (!confirmed) {
-      button.textContent = WHATSAPP_ENABLED
-        ? "Could not confirm — use WhatsApp below"
-        : "Could not confirm — please try again";
-      if (wa && WHATSAPP_ENABLED) wa.style.display = "inline-flex";
+      button.textContent = "Could not confirm — use WhatsApp below";
+      if (wa) wa.style.display = "inline-flex";
     }
   } finally {
     if (confirmed) button.disabled = false;
