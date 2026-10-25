@@ -1,0 +1,264 @@
+{
+  "version": "7.3",
+  "screens": [
+    {
+      "id": "SERVICE",
+      "title": "Step 1 of 4",
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Form",
+            "name": "form",
+            "children": [
+              {
+                "type": "TextHeading",
+                "text": "What are you planning?"
+              },
+              {
+                "type": "RadioButtonsGroup",
+                "name": "product",
+                "label": "Choose your requirement",
+                "required": true,
+                "data-source": [
+                  {
+                    "id": "kitchen",
+                    "title": "Modular kitchen"
+                  },
+                  {
+                    "id": "wardrobe",
+                    "title": "Wardrobes"
+                  },
+                  {
+                    "id": "both",
+                    "title": "Kitchen + wardrobes"
+                  }
+                ]
+              },
+              {
+                "type": "Footer",
+                "label": "Continue",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": {
+                    "type": "screen",
+                    "name": "PROJECT"
+                  },
+                  "payload": {
+                    "product": "${form.product}"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PROJECT",
+      "title": "Step 2 of 4",
+      "data": {
+        "product": {
+          "type": "string",
+          "__example__": "kitchen"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Form",
+            "name": "form",
+            "children": [
+              {
+                "type": "TextHeading",
+                "text": "Is this for a new or existing home?"
+              },
+              {
+                "type": "RadioButtonsGroup",
+                "name": "project_type",
+                "label": "Choose project type",
+                "required": true,
+                "data-source": [
+                  {
+                    "id": "new",
+                    "title": "New interior project"
+                  },
+                  {
+                    "id": "renovation",
+                    "title": "Renovation / replacement"
+                  },
+                  {
+                    "id": "exploring",
+                    "title": "Just exploring"
+                  }
+                ]
+              },
+              {
+                "type": "Footer",
+                "label": "Continue",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": {
+                    "type": "screen",
+                    "name": "TIMELINE"
+                  },
+                  "payload": {
+                    "product": "${data.product}",
+                    "project_type": "${form.project_type}"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "TIMELINE",
+      "title": "Step 3 of 4",
+      "data": {
+        "product": {
+          "type": "string",
+          "__example__": "kitchen"
+        },
+        "project_type": {
+          "type": "string",
+          "__example__": "new"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Form",
+            "name": "form",
+            "children": [
+              {
+                "type": "TextHeading",
+                "text": "When are you planning to start?"
+              },
+              {
+                "type": "RadioButtonsGroup",
+                "name": "timeline",
+                "label": "Choose expected start",
+                "required": true,
+                "data-source": [
+                  {
+                    "id": "soon",
+                    "title": "Within 30 days"
+                  },
+                  {
+                    "id": "one_to_three",
+                    "title": "1–3 months"
+                  },
+                  {
+                    "id": "later",
+                    "title": "After 3 months"
+                  },
+                  {
+                    "id": "undecided",
+                    "title": "Not decided yet"
+                  }
+                ]
+              },
+              {
+                "type": "Footer",
+                "label": "Continue",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": {
+                    "type": "screen",
+                    "name": "AREA"
+                  },
+                  "payload": {
+                    "product": "${data.product}",
+                    "project_type": "${data.project_type}",
+                    "timeline": "${form.timeline}"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "AREA",
+      "title": "Step 4 of 4",
+      "data": {
+        "product": {
+          "type": "string",
+          "__example__": "kitchen"
+        },
+        "project_type": {
+          "type": "string",
+          "__example__": "new"
+        },
+        "timeline": {
+          "type": "string",
+          "__example__": "soon"
+        }
+      },
+      "terminal": true,
+      "success": true,
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Form",
+            "name": "form",
+            "children": [
+              {
+                "type": "TextHeading",
+                "text": "Where is your project located?"
+              },
+              {
+                "type": "Dropdown",
+                "name": "area",
+                "label": "Choose Bengaluru region",
+                "required": true,
+                "data-source": [
+                  {
+                    "id": "north",
+                    "title": "North Bengaluru"
+                  },
+                  {
+                    "id": "south",
+                    "title": "South Bengaluru"
+                  },
+                  {
+                    "id": "east",
+                    "title": "East Bengaluru"
+                  },
+                  {
+                    "id": "west",
+                    "title": "West Bengaluru"
+                  },
+                  {
+                    "id": "central_other",
+                    "title": "Central / other"
+                  }
+                ]
+              },
+              {
+                "type": "Footer",
+                "label": "Send enquiry",
+                "on-click-action": {
+                  "name": "complete",
+                  "payload": {
+                    "product": "${data.product}",
+                    "project_type": "${data.project_type}",
+                    "timeline": "${data.timeline}",
+                    "area": "${form.area}"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
