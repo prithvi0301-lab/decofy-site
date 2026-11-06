@@ -2,6 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    { "source": "/upvc-wall-panels-bengaluru", "destination": "/upvc-interiors-bengaluru", "permanent": true },
+    { "source": "/upvc-wall-panels-bengaluru/", "destination": "/upvc-interiors-bengaluru", "permanent": true },
+    { "source": "/upvc-wall-panels-bengaluru.html", "destination": "/upvc-interiors-bengaluru", "permanent": true },
+    { "source": "/upvc-wall-panels-bengaluru/index.html", "destination": "/upvc-interiors-bengaluru", "permanent": true }
+  ],
   "headers": [
     {
       "source": "/(.*)",

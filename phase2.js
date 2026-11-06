@@ -10,8 +10,7 @@ function decofyHandoffText() {
   var labels = {
     "/": "home",
     "/consultation": "consultation",
-    "/upvc-interiors-bengaluru": "uPVC interiors",
-    "/upvc-wall-panels-bengaluru": "wall panels"
+    "/upvc-interiors-bengaluru": "uPVC interiors"
   };
   var label = labels[path];
   if (!label) return "Hi Decofy, I'm enquiring from this page.";
